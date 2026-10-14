@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chương 5 Lab: Multi-Client, Broadcast & MQTT Collaborative Whiteboard</title>
   <!-- Nhúng thư viện MQTT.js qua CDN -->
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
@@ -20,7 +20,7 @@
       --border-color: #334155;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; touch-action: none; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
     body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
     
     header { background-color: rgba(30, 41, 59, 0.9); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border-color); padding: 1rem 2rem; position: sticky; top: 0; z-index: 100; }
@@ -49,12 +49,15 @@
     .badge-amber { background-color: rgba(245, 158, 11, 0.2); color: var(--accent-amber); }
     .badge-purple { background-color: rgba(168, 85, 247, 0.2); color: var(--accent-purple); }
 
-    .btn { background-color: var(--accent-blue); color: #000; border: none; padding: 0.6rem 1rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.875rem; width: 100%; margin-top: 0.5rem; touch-action: manipulation; }
+    .btn { background-color: var(--accent-blue); color: #000; border: none; padding: 0.6rem 1rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.875rem; width: 100%; margin-top: 0.5rem; }
     .btn:hover { opacity: 0.9; }
     .btn-danger { background-color: var(--accent-red); color: #fff; }
 
     .canvas-container { background-color: #090d16; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; text-align: center; margin-bottom: 1rem; }
-    canvas { background-color: #ffffff; border-radius: 6px; cursor: crosshair; display: block; width: 100%; height: 480px; touch-action: none; }
+    
+    /* FIX: Chỉ khóa touch-action trên canvas để điện thoại cuộn trang thoải mái */
+    canvas.drawing-canvas { background-color: #ffffff; border-radius: 6px; cursor: crosshair; display: block; width: 100%; height: 480px; touch-action: none; }
+    .anim-canvas { display: block; width: 100%; max-width: 420px; height: 180px; margin: 0 auto; border-radius: 6px; }
 
     .log-box { height: 150px; overflow-y: auto; background-color: #090d16; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.5rem 0.75rem; font-family: monospace; font-size: 0.75rem; color: #38bdf8; }
     .log-line { margin-bottom: 0.25rem; word-break: break-all; }
@@ -79,73 +82,78 @@
   </header>
 
   <nav class="nav-tabs">
-    <button class="tab-btn active" onclick="switchTab('tab1')">1. Nguyên lý Broadcast & Multicast</button>
+    <button class="tab-btn active" onclick="switchTab('tab1')">1. Mô Hình Unicast, Broadcast & Multicast</button>
     <button class="tab-btn" onclick="switchTab('tab2')">2. Cơ chế Public MQTT Broker</button>
     <button class="tab-btn" onclick="switchTab('tab3')">3. Phòng Lab: Whiteboard Phân Tán</button>
   </nav>
 
   <main>
-    <!-- TAB 1: NGUYÊN LÝ BROADCAST & MULTICAST (BỔ SUNG NỘI DUNG PHONG PHÚ) -->
+    <!-- TAB 1: 3 MÔ HÌNH TRUYỀN THÔNG VỚI 3 ANIMATION KHÁC NHAU & ỨNG DỤNG THỰC TẾ -->
     <div id="tab1" class="tab-content active">
-      <div class="card">
-        <div class="card-title">
-          <span>Mô Phỏng Hoạt Họa: Unicast vs Broadcast vs Multicast</span>
-          <button class="btn" style="width: auto; padding: 0.3rem 0.8rem; font-size: 0.75rem;" onclick="startNetAnim()">Chạy Lại Hoạt Họa</button>
-        </div>
-        <div class="canvas-container">
-          <canvas id="netAnimCanvas" width="900" height="260" style="max-width: 900px; height: 260px;"></canvas>
-        </div>
-        <div id="netAnimText" style="text-align: center; font-size: 0.85rem; color: var(--accent-blue); font-weight: 600;">
-          Đang khởi tạo mô phỏng truyền thông mạng...
-        </div>
-      </div>
-
       <div class="grid-2">
+        
+        <!-- UNICAST CARD -->
         <div class="card">
           <div class="card-title">
             <span>1. Unicast (Điểm tới Điểm)</span>
             <span class="badge badge-blue">1-to-1</span>
           </div>
+          <div class="canvas-container">
+            <canvas id="unicastCanvas" class="anim-canvas" width="420" height="180"></canvas>
+          </div>
           <p class="theory-text">
-            Mô hình truyền thông cơ bản nhất trong mạng máy tính, nơi một gói tin được gửi từ một nguồn duy nhất đến chính xác một đích duy nhất xác định thông qua địa chỉ IP hoặc MAC.
+            Truyền dữ liệu trực tiếp giữa đúng một thiết bị nguồn và một thiết bị đích riêng biệt trong mạng.
           </p>
           <ul class="theory-list">
-            <li><b>Đặc điểm:</b> Tính riêng tư cao, chiếm băng thông tuyến tính theo số lượng kết nối.</li>
-            <li><b>Ứng dụng thực tế:</b> Giao dịch HTTP, truyền file FTP, duyệt web thông thường.</li>
+            <li><b>Đặc điểm hình ảnh:</b> Gói tin chỉ chạy theo một đường ống duy nhất từ nguồn tới đích được chọn.</li>
+            <li><b>Ứng dụng thực tế:</b> Duyệt web (HTTP/HTTPS), gửi email (SMTP), truyền file bảo mật (SSH/FTP).</li>
           </ul>
         </div>
 
+        <!-- BROADCAST CARD -->
         <div class="card">
           <div class="card-title">
             <span>2. Broadcast (Phát Quãng Bá)</span>
             <span class="badge badge-amber">1-to-All</span>
           </div>
+          <div class="canvas-container">
+            <canvas id="broadcastCanvas" class="anim-canvas" width="420" height="180"></canvas>
+          </div>
           <p class="theory-text">
-            Gói tin được phát tán từ một máy nguồn tới <b>tất cả các thiết bị</b> nằm trong cùng một phân đoạn mạng LAN. Mọi nút mạng nhận được đều bắt buộc phải xử lý gói tin đó.
+            Gói tin phát tán đồng thời từ một nguồn tới tất cả các thiết bị trong cùng phân đoạn mạng LAN.
           </p>
           <ul class="theory-list">
-            <li><b>Đặc điểm:</b> Dễ gây nghẽn mạng (Broadcast Storm) nếu lạm dụng, giới hạn trong phạm vi subnet.</li>
-            <li><b>Ứng dụng thực tế:</b> Giao thức phân giải địa chỉ ARP, tìm cấp phát IP DHCP Discover.</li>
+            <li><b>Đặc điểm hình ảnh:</b> Gói tin lan tỏa thành vòng tròn rộng bao trùm toàn bộ các nút trong mạng.</li>
+            <li><b>Ứng dụng thực tế:</b> Tìm phân giải địa chỉ MAC (ARP Request), cấp phát IP tự động (DHCP Discover).</li>
           </ul>
         </div>
+
       </div>
 
+      <!-- MULTICAST CARD (FULL WIDTH) -->
       <div class="card">
         <div class="card-title">
-          <span>3. Multicast (Phát Nhóm) - Giải Pháp Tối Ưu Hóa Băng Thông</span>
+          <span>3. Multicast (Phát Nhóm)</span>
           <span class="badge badge-purple">1-to-Many Group</span>
         </div>
-        <p class="theory-text">
-            Là kỹ thuật truyền thông trung gian giữa Unicast và Broadcast. Dữ liệu chỉ được gửi tới một <b>nhóm các thiết bị đã đăng ký gia nhập (Joined Multicast Group)</b> thông qua dải địa chỉ IP đặc biệt (Class D từ <code class="inline-code">224.0.0.0</code> đến <code class="inline-code">239.255.255.255</code>). Các thiết bị ngoài nhóm sẽ tự động loại bỏ gói tin ngay tại card mạng, giúp tiết kiệm tài nguyên đường truyền tối đa.
-        </p>
-        <ul class="theory-list">
-            <li><b>Cơ chế hoạt động:</b> Sử dụng giao thức IGMP (Internet Group Management Protocol) để quản lý thành viên nhóm.</li>
-            <li><b>Ứng dụng thực tế:</b> Truyền hình trực tuyến IPTV, hội nghị truyền hình quy mô lớn, giao định tuyến mạng (OSPF, RIPv2).</li>
-        </ul>
+        <div class="grid-2" style="align-items: center;">
+          <div class="canvas-container" style="margin-bottom: 0;">
+            <canvas id="multicastCanvas" class="anim-canvas" width="420" height="180"></canvas>
+          </div>
+          <div>
+            <p class="theory-text">
+              Truyền thông tin tới một nhóm thiết bị cụ thể đã đăng ký tham gia (Joined Group) thông qua dải IP Class D, các thiết bị ngoài nhóm sẽ bỏ qua.
+            </p>
+            <ul class="theory-list">
+              <li><b>Đặc điểm hình ảnh:</b> Gói tin phân nhánh thông minh chỉ nhắm chính xác vào các thành viên trong nhóm đăng ký màu xanh.</li>
+              <li><b>Ứng dụng thực tế:</b> Truyền hình trực tuyến IPTV, hội nghị truyền hình, các giao thức định tuyến mạng (OSPF).</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- TAB 2: CƠ CHẾ PUBLIC MQTT BROKER (BỔ SUNG NỘI DUNG PHONG PHÚ) -->
+    <!-- TAB 2: CƠ CHẾ PUBLIC MQTT BROKER -->
     <div id="tab2" class="tab-content">
       <div class="card">
         <div class="card-title">
@@ -167,33 +175,32 @@
             <span class="badge badge-blue">Decoupled Architecture</span>
           </div>
           <p class="theory-text">
-            MQTT (Message Queuing Telemetry Transport) hoạt động dựa trên mô hình bất đồng bộ tách rời (Decoupled):
+            MQTT hoạt động dựa trên mô hình bất đồng bộ tách rời (Decoupled):
           </p>
           <ul class="theory-list">
-            <li><b>Publisher (Bên gửi):</b> Đẩy thông điệp gắn liền với một <i>Topic</i> lên Broker mà không cần biết ai sẽ nhận.</li>
-            <li><b>Subscriber (Bên nhận):</b> Đăng ký lắng nghe các <i>Topic</i> quan tâm qua Broker.</li>
-            <li><b>Broker (Trung gian):</b> Nhận, lọc và định tuyến thông điệp từ Publisher đến đúng các Subscriber tương ứng.</li>
+            <li><b>Publisher:</b> Đẩy thông điệp gắn liền với một <i>Topic</i> lên Broker.</li>
+            <li><b>Subscriber:</b> Đăng ký lắng nghe các <i>Topic</i> quan tâm qua Broker.</li>
+            <li><b>Broker:</b> Nhận, lọc và định tuyến thông điệp từ Publisher đến đúng các Subscriber.</li>
           </ul>
         </div>
 
         <div class="card">
           <div class="card-title">
-            <span>Tại Sao MQTT Phù Hợp Cho Trình Duyệt & IoT?</span>
-            <span class="badge badge-green">Lightweight & Fast</span>
+            <span>Ưu Điểm Của MQTT over WebSockets</span>
+            <span class="badge badge-green">Browser Friendly</span>
           </div>
           <p class="theory-text">
-            MQTT được thiết kế với trọng lượng cực nhẹ nhằm tối ưu hóa cho các hệ thống băng thông thấp hoặc không ổn định:
+            Cho phép ứng dụng trình duyệt web kết nối mượt mà tới các Public Broker toàn cầu qua cổng bảo mật tiêu chuẩn:
           </p>
           <ul class="theory-list">
-            <li><b>Header siêu nhỏ:</b> Gói tin điều khiển chỉ từ 2 bytes, giảm thiểu tối đa overhead mạng.</li>
-            <li><b>MQTT over WebSockets (<code class="inline-code">wss://</code>):</b> Cho phép trình duyệt web kết nối xuyên tường lửa trực tiếp qua cổng bảo mật tiêu chuẩn.</li>
-            <li><b>QoS (Quality of Service):</b> Hỗ trợ 3 mức độ bảo đảm giao nhận tin nhắn (QoS 0, 1, 2) phù hợp với nhiều bài toán thực tế.</li>
+            <li><b>Header siêu nhỏ:</b> Gói tin điều khiển tối ưu hóa băng thông.</li>
+            <li><b>Xuyên tường lửa:</b> Hoạt động ổn định trên các mạng công ty/trường học.</li>
           </ul>
         </div>
       </div>
     </div>
 
-    <!-- TAB 3: PHÒNG LAB WHITEBOARD PHÂN TÁN (ĐÃ FIX HỖ TRỢ PHONE / TOUCH) -->
+    <!-- TAB 3: PHÒNG LAB WHITEBOARD PHÂN TÁN -->
     <div id="tab3" class="tab-content">
       <div class="grid-sidebar">
         <div>
@@ -247,11 +254,11 @@
         <!-- CỘT BẢNG VẼ CANVAS CHÍNH -->
         <div class="card" style="display: flex; flex-direction: column;">
           <div class="card-title">
-            <span>Bảng Vẽ Phân Tán (Hỗ trợ cả PC & Điện thoại)</span>
-            <span class="badge badge-green">Touch & Mouse Enabled</span>
+            <span>Bảng Vẽ Phân Tán (Hỗ trợ PC & Điện thoại cuộn trang)</span>
+            <span class="badge badge-green">Optimized Touch</span>
           </div>
           <div class="canvas-container" style="flex: 1; margin-bottom: 0;">
-            <canvas id="whiteboard" width="1000" height="600" style="height: 560px;"></canvas>
+            <canvas id="whiteboard" class="drawing-canvas" width="1000" height="600" style="height: 560px;"></canvas>
           </div>
         </div>
       </div>
@@ -266,54 +273,135 @@
       document.getElementById(tabId).classList.add('active');
       event.currentTarget.classList.add('active');
 
-      if (tabId === 'tab1') startNetAnim();
+      if (tabId === 'tab1') {
+        startUnicastAnim();
+        startBroadcastAnim();
+        startMulticastAnim();
+      }
       if (tabId === 'tab2') startMqttAnim();
     }
 
-    // --- ANIMATION 1: NET ANIMATION ---
-    let netAnimId = null;
-    function startNetAnim() {
-      const canvas = document.getElementById('netAnimCanvas');
+    // --- ANIMATION 1: UNICAST (1-to-1) ---
+    let unicastId = null;
+    function startUnicastAnim() {
+      const canvas = document.getElementById('unicastCanvas');
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
-      let step = 0;
-      if (netAnimId) cancelAnimationFrame(netAnimId);
+      let pos = 0;
+      if (unicastId) cancelAnimationFrame(unicastId);
 
       function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        step = (step + 1) % 180;
+        pos = (pos + 2) % 280;
 
+        // Source & Target
         ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2;
-        ctx.fillRect(80, 105, 90, 50); ctx.strokeRect(80, 105, 90, 50);
-        ctx.fillStyle = '#f8fafc'; ctx.font = 'bold 12px sans-serif'; ctx.fillText('SENDER', 98, 135);
+        ctx.fillRect(20, 70, 70, 40); ctx.strokeRect(20, 70, 70, 40);
+        ctx.fillStyle = '#f8fafc'; ctx.font = '10px sans-serif'; ctx.fillText('Nguồn', 38, 95);
 
-        const receivers = [
-          {x: 750, y: 30, name: 'Node A'},
-          {x: 750, y: 90, name: 'Node B'},
-          {x: 750, y: 150, name: 'Node C'},
-          {x: 750, y: 210, name: 'Node D'},
-        ];
+        ctx.fillRect(330, 70, 70, 40); ctx.strokeRect(330, 70, 70, 40);
+        ctx.fillText('Đích', 352, 95);
 
-        receivers.forEach(r => {
-          ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#22c55e';
-          ctx.fillRect(r.x, r.y, 90, 45); ctx.strokeRect(r.x, r.y, 90, 45);
-          ctx.fillStyle = '#f8fafc'; ctx.font = '11px sans-serif'; ctx.fillText(r.name, r.x + 24, r.y + 27);
-        });
+        // Direct Line
+        ctx.beginPath(); ctx.moveTo(90, 90); ctx.lineTo(330, 90);
+        ctx.strokeStyle = '#334155'; ctx.lineWidth = 2; ctx.stroke();
 
-        let radius = (step * 4) % 650;
-        ctx.beginPath();
-        ctx.arc(125, 130, radius, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(56, 189, 248, ${Math.max(0, 1 - radius / 650)})`;
-        ctx.lineWidth = 3;
-        ctx.stroke();
+        // Moving Packet
+        let pX = 90 + pos;
+        if (pX <= 330) {
+          ctx.fillStyle = '#38bdf8'; ctx.beginPath(); ctx.arc(pX, 90, 7, 0, Math.PI * 2); ctx.fill();
+        }
 
-        document.getElementById('netAnimText').textContent = "Mô phỏng phát tán gói tin: Lan tỏa từ một nguồn tới toàn bộ các nút trong mạng.";
-        netAnimId = requestAnimationFrame(draw);
+        unicastId = requestAnimationFrame(draw);
       }
       draw();
     }
 
-    // --- ANIMATION 2: MQTT ANIMATION ---
+    // --- ANIMATION 2: BROADCAST (1-to-All) ---
+    let broadcastId = null;
+    function startBroadcastAnim() {
+      const canvas = document.getElementById('broadcastCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let step = 0;
+      if (broadcastId) cancelAnimationFrame(broadcastId);
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        step = (step + 1) % 120;
+
+        // Sender & Nodes
+        ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
+        ctx.fillRect(20, 70, 70, 40); ctx.strokeRect(20, 70, 70, 40);
+        ctx.fillStyle = '#f8fafc'; ctx.font = '10px sans-serif'; ctx.fillText('Nguồn', 38, 95);
+
+        const targets = [{x: 330, y: 20}, {x: 330, y: 90}, {x: 330, y: 140}];
+        targets.forEach(t => {
+          ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#22c55e';
+          ctx.fillRect(t.x, t.y, 70, 30); ctx.strokeRect(t.x, t.y, 70, 30);
+          ctx.fillStyle = '#f8fafc'; ctx.fillText('Nhận', t.x + 22, t.y + 20);
+        });
+
+        // Expanding Waves
+        let radius = (step * 3) % 320;
+        ctx.beginPath();
+        ctx.arc(55, 90, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(245, 158, 11, ${Math.max(0, 1 - radius / 320)})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        broadcastId = requestAnimationFrame(draw);
+      }
+      draw();
+    }
+
+    // --- ANIMATION 3: MULTICAST (1-to-Many Group) ---
+    let multicastId = null;
+    function startMulticastAnim() {
+      const canvas = document.getElementById('multicastCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let pos = 0;
+      if (multicastId) cancelAnimationFrame(multicastId);
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        pos = (pos + 2) % 260;
+
+        // Sender
+        ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2;
+        ctx.fillRect(30, 70, 70, 40); ctx.strokeRect(30, 70, 70, 40);
+        ctx.fillStyle = '#f8fafc'; ctx.font = '10px sans-serif'; ctx.fillText('Nguồn', 48, 95);
+
+        // Group members (Green) vs Outsider (Grey)
+        const receivers = [
+          {x: 320, y: 20, inGroup: true},
+          {x: 320, y: 75, inGroup: false},
+          {x: 320, y: 130, inGroup: true}
+        ];
+
+        receivers.forEach(r => {
+          ctx.fillStyle = '#1e293b'; ctx.strokeStyle = r.inGroup ? '#22c55e' : '#64748b';
+          ctx.fillRect(r.x, r.y, 70, 30); ctx.strokeRect(r.x, r.y, 70, 30);
+          ctx.fillStyle = '#f8fafc'; ctx.fillText(r.inGroup ? 'Thành viên' : 'Ngoài nhóm', r.x + 5, r.y + 20);
+
+          if (r.inGroup) {
+            ctx.beginPath(); ctx.moveTo(100, 90); ctx.lineTo(320, r.y + 15);
+            ctx.strokeStyle = 'rgba(168, 85, 247, 0.4)'; ctx.lineWidth = 2; ctx.stroke();
+          }
+        });
+
+        let pX = 100 + pos;
+        if (pX <= 320) {
+          ctx.fillStyle = '#a855f7'; ctx.beginPath(); ctx.arc(pX, 90, 7, 0, Math.PI * 2); ctx.fill();
+        }
+
+        multicastId = requestAnimationFrame(draw);
+      }
+      draw();
+    }
+
+    // --- ANIMATION 4: MQTT ANIMATION ---
     let mqttAnimId = null;
     function startMqttAnim() {
       const canvas = document.getElementById('mqttAnimCanvas');
@@ -359,7 +447,7 @@
       draw();
     }
 
-    // --- TAB 3: WHITEBOARD & TOUCH/MOUSE FIX ---
+    // --- TAB 3: WHITEBOARD & TOUCH FIX ---
     const canvas = document.getElementById('whiteboard');
     const ctx = canvas.getContext('2d');
     let painting = false;
@@ -442,7 +530,6 @@
       }
     });
 
-    // Lấy tọa độ chuẩn xác cho cả chuột (Mouse) và màn hình cảm ứng điện thoại (Touch)
     function getCursorPos(e) {
       const rect = canvas.getBoundingClientRect();
       let clientX, clientY;
@@ -498,7 +585,6 @@
       painting = false;
     }
 
-    // Gắn sự kiện cho cả Chuột (Mouse) và Điện thoại/Cảm ứng (Touch)
     canvas.addEventListener('mousedown', startPosition);
     canvas.addEventListener('mousemove', drawPosition);
     canvas.addEventListener('mouseup', endPosition);
@@ -546,7 +632,9 @@
     }, 4000);
 
     window.onload = () => {
-      startNetAnim();
+      startUnicastAnim();
+      startBroadcastAnim();
+      startMulticastAnim();
       updateClientListUI();
     };
   </script>
