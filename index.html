@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chương 5 Lab: Multi-Client Collaborative Whiteboard (Broadcast)</title>
+  <style>
+    :root {
+      --bg-main: #0f172a;
+      --bg-card: #1e293b;
+      --accent-blue: #38bdf8;
+      --accent-green: #22c55e;
+      --accent-amber: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background-color: rgba(30, 41, 59, 0.8); border-bottom: 1px solid var(--border-color); padding: 1rem 2rem; position: sticky; top: 0; z-index: 100; }
+    .header-title { font-size: 1.25rem; font-weight: 700; color: var(--accent-blue); display: flex; align-items: center; gap: 0.5rem; }
+    .header-sub { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem; }
+    main { flex: 1; padding: 1.5rem 2rem; max-width: 1400px; margin: 0 auto; width: 100%; display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+    .card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem; }
+    .card-title { font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; }
+    .badge { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600; text-transform: uppercase; }
+    .badge-green { background-color: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
+    .badge-blue { background-color: rgba(56, 189, 248, 0.2); color: var(--accent-blue); }
+    .btn { background-color: var(--accent-blue); color: #000; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; width: 100%; margin-top: 0.5rem; }
+    .btn:hover { opacity: 0.9; }
+    .btn-danger { background-color: #ef4444; color: #fff; }
+    canvas { background-color: #ffffff; border-radius: 8px; cursor: crosshair; display: block; width: 100%; height: 500px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    .tool-group { margin-bottom: 1rem; }
+    .tool-group label { font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem; }
+    .color-picker { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+    .color-btn { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+    .color-btn.active { border-color: #fff; transform: scale(1.1); }
+    .log-box { height: 120px; overflow-y: auto; background-color: #090d16; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.5rem; font-family: monospace; font-size: 0.75rem; color: #38bdf8; margin-top: 0.5rem; }
+    .log-line { margin-bottom: 0.2rem; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-title">🎨 Chương 5 Lab: Collaborative Whiteboard (Broadcast Architecture)</div>
+    <div class="header-sub">Mô phỏng cơ chế Multi-Client Server & Broadcast: 1 người vẽ, tất cả các Tab/Máy khác đồng bộ nét vẽ Real-time</div>
+  </header>
+
+  <main>
+    <!-- CỘT ĐIỀU KHIỂN -->
+    <div>
+      <div class="card">
+        <div class="card-title">
+          <span>Công Cụ Vẽ</span>
+          <span class="badge badge-green">Active Client</span>
+        </div>
+        
+        <div class="tool-group">
+          <label>Màu sắc nét cọ:</label>
+          <div class="color-picker">
+            <div class="color-btn active" style="background-color: #0f172a;" onclick="setColor('#0f172a', this)"></div>
+            <div class="color-btn" style="background-color: #ef4444;" onclick="setColor('#ef4444', this)"></div>
+            <div class="color-btn" style="background-color: #22c55e;" onclick="setColor('#22c55e', this)"></div>
+            <div class="color-btn" style="background-color: #38bdf8;" onclick="setColor('#38bdf8', this)"></div>
+          </div>
+        </div>
+
+        <div class="tool-group">
+          <label>Độ dày nét vẽ: <span id="sizeVal">4</span>px</label>
+          <input type="range" id="brushSize" min="1" max="20" value="4" style="width: 100%; accent-color: var(--accent-blue);" oninput="document.getElementById('sizeVal').textContent=this.value">
+        </div>
+
+        <button class="btn btn-danger" onclick="clearBoard()">Xóa Sạch Bảng (Clear)</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span>Nhật Ký Broadcast (Network Log)</span>
+          <span class="badge badge-blue">1-to-Many</span>
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+          Gói tin tọa độ (x1, y1, x2, y2, color) được phát tán cho mọi client:
+        </div>
+        <div class="log-box" id="netLogs"></div>
+      </div>
+    </div>
+
+    <!-- CỘT BẢNG VẼ CANVAS -->
+    <div class="card" style="display: flex; flex-direction: column;">
+      <div class="card-title">
+        <span>Bảng Vẽ Chung (Shared Whiteboard Canvas)</span>
+        <span id="clientCount" class="badge badge-blue">Đang kết nối: 1 Client (Tab này)</span>
+      </div>
+      <canvas id="whiteboard" width="900" height="500"></canvas>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('whiteboard');
+    const ctx = canvas.getContext('2d');
+    
+    let painting = false;
+    let currentColor = '#0f172a';
+    let lastX = 0;
+    let lastY = 0;
+
+    // Sử dụng BroadcastChannel để mô phỏng mạng Multi-Client Broadcast giữa các Tab trên cùng máy
+    const channel = new BroadcastChannel('whiteboard_broadcast_channel');
+
+    function logNet(msg) {
+      const logs = document.getElementById('netLogs');
+      const time = new Date().toLocaleTimeString();
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      line.innerHTML = `[${time}] ${msg}`;
+      logs.appendChild(line);
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    // Thiết lập sự kiện chuột vẽ trên Canvas
+    canvas.addEventListener('mousedown', (e) => {
+      painting = true;
+      const rect = canvas.getBoundingClientRect();
+      lastX = e.clientX - rect.left;
+      lastY = e.clientY - rect.top;
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!painting) return;
+      const rect = canvas.getBoundingClientRect();
+      const currentX = e.clientX - rect.left;
+      const currentY = e.clientY - rect.top;
+      const size = document.getElementById('brushSize').value;
+
+      // Vẽ trên bảng của chính mình
+      drawLine(lastX, lastY, currentX, currentY, currentColor, size);
+
+      // BROADCAST dữ liệu tọa độ đến tất cả các Client/Tab khác
+      const packet = { type: 'draw', x1: lastX, y1: lastY, x2: currentX, y2: currentY, color: currentColor, size: size };
+      channel.postMessage(packet);
+
+      lastX = currentX;
+      lastY = currentY;
+    });
+
+    window.addEventListener('mouseup', () => { painting = false; });
+
+    function drawLine(x1, y1, x2, y2, color, size) {
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = size;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      ctx.closePath();
+    }
+
+    // Nhận gói tin Broadcast từ các Client khác gửi tới
+    channel.onmessage = (event) => {
+      const data = event.data;
+      if (data.type === 'draw') {
+        drawLine(data.x1, data.y1, data.x2, data.y2, data.color, data.size);
+        logNet(`Nhận packet vẽ: x(${Math.round(data.x1)}->${Math.round(data.x2)})`);
+      } else if (data.type === 'clear') {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        logNet(`Nhận lệnh CLEAR bảng từ remote client!`);
+      }
+    };
+
+    function setColor(color, element) {
+      currentColor = color;
+      document.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('active'));
+      element.classList.add('active');
+    }
+
+    function clearBoard() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      channel.postMessage({ type: 'clear' });
+      logNet(`Đã gửi lệnh xóa bảng (Broadcast Clear) tới mọi client.`);
+    }
+
+    logNet('Đã khởi tạo kênh Broadcast Channel thành công.');
+  </script>
+</body>
+</html>
