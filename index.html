@@ -55,7 +55,6 @@
 
     .canvas-container { background-color: #090d16; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; text-align: center; margin-bottom: 1rem; }
     
-    /* FIX: Chỉ khóa touch-action trên canvas để điện thoại cuộn trang thoải mái */
     canvas.drawing-canvas { background-color: #ffffff; border-radius: 6px; cursor: crosshair; display: block; width: 100%; height: 480px; touch-action: none; }
     .anim-canvas { display: block; width: 100%; max-width: 420px; height: 180px; margin: 0 auto; border-radius: 6px; }
 
@@ -72,6 +71,9 @@
     code.inline-code { background-color: #334155; color: var(--accent-blue); padding: 0.1rem 0.3rem; border-radius: 4px; font-size: 0.8rem; }
     .theory-text { font-size: 0.9rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 0.75rem; }
     .theory-list { margin-left: 1.25rem; font-size: 0.875rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem; }
+    
+    .step-box { background-color: #0f172a; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem; margin-bottom: 1rem; }
+    .step-box h4 { color: var(--accent-blue); font-size: 0.95rem; margin-bottom: 0.5rem; }
   </style>
 </head>
 <body>
@@ -85,14 +87,13 @@
     <button class="tab-btn active" onclick="switchTab('tab1')">1. Mô Hình Unicast, Broadcast & Multicast</button>
     <button class="tab-btn" onclick="switchTab('tab2')">2. Cơ chế Public MQTT Broker</button>
     <button class="tab-btn" onclick="switchTab('tab3')">3. Phòng Lab: Whiteboard Phân Tán</button>
+    <button class="tab-btn" onclick="switchTab('tab4')">4. Phân Tích Gói Tin Bằng Wireshark</button>
   </nav>
 
   <main>
-    <!-- TAB 1: 3 MÔ HÌNH TRUYỀN THÔNG VỚI 3 ANIMATION KHÁC NHAU & ỨNG DỤNG THỰC TẾ -->
+    <!-- TAB 1: 3 MÔ HÌNH TRUYỀN THÔNG -->
     <div id="tab1" class="tab-content active">
       <div class="grid-2">
-        
-        <!-- UNICAST CARD -->
         <div class="card">
           <div class="card-title">
             <span>1. Unicast (Điểm tới Điểm)</span>
@@ -101,16 +102,13 @@
           <div class="canvas-container">
             <canvas id="unicastCanvas" class="anim-canvas" width="420" height="180"></canvas>
           </div>
-          <p class="theory-text">
-            Truyền dữ liệu trực tiếp giữa đúng một thiết bị nguồn và một thiết bị đích riêng biệt trong mạng.
-          </p>
+          <p class="theory-text">Truyền dữ liệu trực tiếp giữa đúng một thiết bị nguồn và một thiết bị đích riêng biệt trong mạng.</p>
           <ul class="theory-list">
-            <li><b>Đặc điểm hình ảnh:</b> Gói tin chỉ chạy theo một đường ống duy nhất từ nguồn tới đích được chọn.</li>
-            <li><b>Ứng dụng thực tế:</b> Duyệt web (HTTP/HTTPS), gửi email (SMTP), truyền file bảo mật (SSH/FTP).</li>
+            <li><b>Đặc điểm:</b> Riêng tư cao, chiếm băng thông tuyến tính theo số kết nối.</li>
+            <li><b>Ứng dụng thực tế:</b> Duyệt web (HTTP/HTTPS), truyền file FTP.</li>
           </ul>
         </div>
 
-        <!-- BROADCAST CARD -->
         <div class="card">
           <div class="card-title">
             <span>2. Broadcast (Phát Quãng Bá)</span>
@@ -119,18 +117,14 @@
           <div class="canvas-container">
             <canvas id="broadcastCanvas" class="anim-canvas" width="420" height="180"></canvas>
           </div>
-          <p class="theory-text">
-            Gói tin phát tán đồng thời từ một nguồn tới tất cả các thiết bị trong cùng phân đoạn mạng LAN.
-          </p>
+          <p class="theory-text">Gói tin phát tán đồng thời từ một nguồn tới tất cả các thiết bị trong cùng phân đoạn mạng LAN.</p>
           <ul class="theory-list">
-            <li><b>Đặc điểm hình ảnh:</b> Gói tin lan tỏa thành vòng tròn rộng bao trùm toàn bộ các nút trong mạng.</li>
-            <li><b>Ứng dụng thực tế:</b> Tìm phân giải địa chỉ MAC (ARP Request), cấp phát IP tự động (DHCP Discover).</li>
+            <li><b>Đặc điểm:</b> Dễ gây nghẽn mạng (Broadcast Storm) nếu lạm dụng.</li>
+            <li><b>Ứng dụng thực tế:</b> Phân giải địa chỉ MAC (ARP), cấp phát IP (DHCP Discover).</li>
           </ul>
         </div>
-
       </div>
 
-      <!-- MULTICAST CARD (FULL WIDTH) -->
       <div class="card">
         <div class="card-title">
           <span>3. Multicast (Phát Nhóm)</span>
@@ -141,12 +135,10 @@
             <canvas id="multicastCanvas" class="anim-canvas" width="420" height="180"></canvas>
           </div>
           <div>
-            <p class="theory-text">
-              Truyền thông tin tới một nhóm thiết bị cụ thể đã đăng ký tham gia (Joined Group) thông qua dải IP Class D, các thiết bị ngoài nhóm sẽ bỏ qua.
-            </p>
+            <p class="theory-text">Truyền thông tin tới một nhóm thiết bị cụ thể đã đăng ký tham gia (Joined Group) qua dải IP Class D.</p>
             <ul class="theory-list">
-              <li><b>Đặc điểm hình ảnh:</b> Gói tin phân nhánh thông minh chỉ nhắm chính xác vào các thành viên trong nhóm đăng ký màu xanh.</li>
-              <li><b>Ứng dụng thực tế:</b> Truyền hình trực tuyến IPTV, hội nghị truyền hình, các giao thức định tuyến mạng (OSPF).</li>
+              <li><b>Đặc điểm:</b> Tiết kiệm băng thông tối đa, thiết bị ngoài nhóm tự động loại bỏ gói tin.</li>
+              <li><b>Ứng dụng thực tế:</b> Truyền hình trực tuyến IPTV, hội nghị truyền hình, định tuyến OSPF.</li>
             </ul>
           </div>
         </div>
@@ -174,9 +166,7 @@
             <span>Kiến Trúc Publish / Subscribe (Pub/Sub)</span>
             <span class="badge badge-blue">Decoupled Architecture</span>
           </div>
-          <p class="theory-text">
-            MQTT hoạt động dựa trên mô hình bất đồng bộ tách rời (Decoupled):
-          </p>
+          <p class="theory-text">MQTT hoạt động dựa trên mô hình bất đồng bộ tách rời (Decoupled):</p>
           <ul class="theory-list">
             <li><b>Publisher:</b> Đẩy thông điệp gắn liền với một <i>Topic</i> lên Broker.</li>
             <li><b>Subscriber:</b> Đăng ký lắng nghe các <i>Topic</i> quan tâm qua Broker.</li>
@@ -189,12 +179,10 @@
             <span>Ưu Điểm Của MQTT over WebSockets</span>
             <span class="badge badge-green">Browser Friendly</span>
           </div>
-          <p class="theory-text">
-            Cho phép ứng dụng trình duyệt web kết nối mượt mà tới các Public Broker toàn cầu qua cổng bảo mật tiêu chuẩn:
-          </p>
+          <p class="theory-text">Cho phép ứng dụng trình duyệt web kết nối mượt mà tới các Public Broker toàn cầu:</p>
           <ul class="theory-list">
             <li><b>Header siêu nhỏ:</b> Gói tin điều khiển tối ưu hóa băng thông.</li>
-            <li><b>Xuyên tường lửa:</b> Hoạt động ổn định trên các mạng công ty/trường học.</li>
+            <li><b>Xuyên tường lửa:</b> Hoạt động ổn định trên cổng bảo mật chuẩn (<code class="inline-code">wss://</code>).</li>
           </ul>
         </div>
       </div>
@@ -251,7 +239,6 @@
           </div>
         </div>
 
-        <!-- CỘT BẢNG VẼ CANVAS CHÍNH -->
         <div class="card" style="display: flex; flex-direction: column;">
           <div class="card-title">
             <span>Bảng Vẽ Phân Tán (Hỗ trợ PC & Điện thoại cuộn trang)</span>
@@ -260,6 +247,52 @@
           <div class="canvas-container" style="flex: 1; margin-bottom: 0;">
             <canvas id="whiteboard" class="drawing-canvas" width="1000" height="600" style="height: 560px;"></canvas>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: PHÂN TÍCH GÓI TIN BẰNG WIRESHARK (MỚI BỔ SUNG) -->
+    <div id="tab4" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <span>Hướng Dẫn Phân Tích & Bắt Gói Tin MQTT Broker Bằng Wireshark</span>
+          <span class="badge badge-green">Network Forensics</span>
+        </div>
+        <p class="theory-text">
+          Vì ứng dụng chạy trên giao thức <b>MQTT over WebSockets (<code class="inline-code">wss://</code> - cổng 8884)</b>, toàn bộ gói tin MQTT sẽ được đóng gói bên trong lớp bảo mật TLS/SSL mã hóa và lớp giao vận TCP. Dưới đây là quy trình chuẩn xác để sinh viên bắt và đọc gói tin trên Wireshark hoặc công cụ tương đương (như <i>TCP Dumump</i> hoặc <i>Browser Developer Tools</i>):
+        </p>
+
+        <div class="step-box">
+          <h4>Bước 1: Thiết lập bộ lọc (Display Filter) trên Wireshark</h4>
+          <p class="theory-text" style="margin-bottom: 0.5rem;">
+            Do cổng kết nối tới broker công cộng là <code class="inline-code">8884</code> và chạy mã hóa TLS, bạn hãy nhập các bộ lọc sau vào thanh Filter:
+          </p>
+          <ul class="theory-list" style="margin-bottom: 0;">
+            <li>Lọc theo cổng TCP: <code class="inline-code">tcp.port == 8884</code></li>
+            <li>Lọc theo giao thức WebSocket thô trước khi mã hóa (nếu bắt ở môi trường local): <code class="inline-code">websocket</code> hoặc <code class="inline-code">tls</code></li>
+          </ul>
+        </div>
+
+        <div class="step-box">
+          <h4>Bước 2: Nhận diện các giai đoạn gói tin mạng</h4>
+          <ul class="theory-list" style="margin-bottom: 0;">
+            <li><b>TCP 3-Way Handshake:</b> Các gói tin <code class="inline-code">SYN</code>, <code class="inline-code">SYN-ACK</code>, <code class="inline-code">ACK</code> thiết lập kết nối giữa trình duyệt và <code class="inline-code">broker.hivemq.com</code>.</li>
+            <li><b>TLS Handshake (Client Hello / Server Hello):</b> Quá trình bắt tay bảo mật để trao đổi khóa mã hóa phiên truyền thông (vì dùng giao thức <code class="inline-code">wss://</code>).</li>
+            <li><b>WebSocket Frame / MQTT Payload:</b> Khi bạn thực hiện vẽ trên Tab 3, các gói tin dữ liệu chuyển động qua lại dạng khung WebSocket chứa nội dung JSON của MQTT Publish.</li>
+          </ul>
+        </div>
+
+        <div class="step-box">
+          <h4>Công cụ thay thế tuyệt vời: Trình duyệt Developer Tools (F12)</h4>
+          <p class="theory-text" style="margin-bottom: 0.5rem;">
+            Vì Wireshark phải giải mã lớp TLS khá phức tạp, bạn có thể hướng dẫn sinh viên dùng ngay tính năng có sẵn trên trình duyệt để soi trực tiếp nội dung gói tin MQTT mà không sợ bị mã hóa:
+          </p>
+          <ol class="theory-list" style="margin-bottom: 0;">
+            <li>Mở trình duyệt web, nhấn <b>F12</b> (hoặc chuột phải chọn <i>Inspect</i>).</li>
+            <li>Chuyển qua tab <b>Network</b> $\rightarrow$ chọn bộ lọc <b>WS</b> (WebSocket).</li>
+            <li>Nhấn vào kết nối đang chạy tên là <code class="inline-code">mqtt</code> hoặc kết nối đến cổng <code class="inline-code">8884</code>.</li>
+            <li>Chọn tab phụ <b>Messages</b>: Sinh viên sẽ nhìn thấy rõ mồn một từng gói tin <code class="inline-code">Send</code> và <code class="inline-code">Receive</code> chứa tọa độ JSON của nét vẽ truyền qua lại với MQTT Broker theo thời gian thực!</li>
+          </ol>
         </div>
       </div>
     </div>
@@ -281,7 +314,7 @@
       if (tabId === 'tab2') startMqttAnim();
     }
 
-    // --- ANIMATION 1: UNICAST (1-to-1) ---
+    // --- ANIMATION 1: UNICAST ---
     let unicastId = null;
     function startUnicastAnim() {
       const canvas = document.getElementById('unicastCanvas');
@@ -294,7 +327,6 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         pos = (pos + 2) % 280;
 
-        // Source & Target
         ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2;
         ctx.fillRect(20, 70, 70, 40); ctx.strokeRect(20, 70, 70, 40);
         ctx.fillStyle = '#f8fafc'; ctx.font = '10px sans-serif'; ctx.fillText('Nguồn', 38, 95);
@@ -302,11 +334,9 @@
         ctx.fillRect(330, 70, 70, 40); ctx.strokeRect(330, 70, 70, 40);
         ctx.fillText('Đích', 352, 95);
 
-        // Direct Line
         ctx.beginPath(); ctx.moveTo(90, 90); ctx.lineTo(330, 90);
         ctx.strokeStyle = '#334155'; ctx.lineWidth = 2; ctx.stroke();
 
-        // Moving Packet
         let pX = 90 + pos;
         if (pX <= 330) {
           ctx.fillStyle = '#38bdf8'; ctx.beginPath(); ctx.arc(pX, 90, 7, 0, Math.PI * 2); ctx.fill();
@@ -317,7 +347,7 @@
       draw();
     }
 
-    // --- ANIMATION 2: BROADCAST (1-to-All) ---
+    // --- ANIMATION 2: BROADCAST ---
     let broadcastId = null;
     function startBroadcastAnim() {
       const canvas = document.getElementById('broadcastCanvas');
@@ -330,7 +360,6 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         step = (step + 1) % 120;
 
-        // Sender & Nodes
         ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
         ctx.fillRect(20, 70, 70, 40); ctx.strokeRect(20, 70, 70, 40);
         ctx.fillStyle = '#f8fafc'; ctx.font = '10px sans-serif'; ctx.fillText('Nguồn', 38, 95);
@@ -342,7 +371,6 @@
           ctx.fillStyle = '#f8fafc'; ctx.fillText('Nhận', t.x + 22, t.y + 20);
         });
 
-        // Expanding Waves
         let radius = (step * 3) % 320;
         ctx.beginPath();
         ctx.arc(55, 90, radius, 0, Math.PI * 2);
@@ -355,7 +383,7 @@
       draw();
     }
 
-    // --- ANIMATION 3: MULTICAST (1-to-Many Group) ---
+    // --- ANIMATION 3: MULTICAST ---
     let multicastId = null;
     function startMulticastAnim() {
       const canvas = document.getElementById('multicastCanvas');
@@ -368,12 +396,10 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         pos = (pos + 2) % 260;
 
-        // Sender
         ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2;
         ctx.fillRect(30, 70, 70, 40); ctx.strokeRect(30, 70, 70, 40);
         ctx.fillStyle = '#f8fafc'; ctx.font = '10px sans-serif'; ctx.fillText('Nguồn', 48, 95);
 
-        // Group members (Green) vs Outsider (Grey)
         const receivers = [
           {x: 320, y: 20, inGroup: true},
           {x: 320, y: 75, inGroup: false},
@@ -401,7 +427,7 @@
       draw();
     }
 
-    // --- ANIMATION 4: MQTT ANIMATION ---
+    // --- ANIMATION 4: MQTT ---
     let mqttAnimId = null;
     function startMqttAnim() {
       const canvas = document.getElementById('mqttAnimCanvas');
